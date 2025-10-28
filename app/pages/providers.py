@@ -272,4 +272,5 @@ def providers_page() -> rx.Component:
             class_name="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6",
         ),
         class_name="max-w-[1200px] w-full mx-auto",
+        on_mount=ManagementState.on_management_load,
     )

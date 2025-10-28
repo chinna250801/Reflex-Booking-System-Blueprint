@@ -3,11 +3,15 @@ from contextlib import contextmanager
 import os
 import logging
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/appointment_db"
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///appointment.db")
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(
-    DATABASE_URL, echo=True, pool_pre_ping=True, pool_size=10, max_overflow=20
+    DATABASE_URL,
+    echo=True,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
 )
 
 

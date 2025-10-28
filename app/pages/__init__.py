@@ -8,4 +8,5 @@ from . import (
     business_settings,
     reports,
     archived_providers,
+    customer_profile,
 )

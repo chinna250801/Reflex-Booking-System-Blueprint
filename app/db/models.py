@@ -14,6 +14,7 @@ if TYPE_CHECKING:
         CustomerDB,
         SlotDB,
         AppointmentDB,
+        HistoryLogDB,
     )
 WeeklyTemplate = dict[int, list[tuple[str, str]]]
 Exceptions = dict[str, list[tuple[str, str]]]
@@ -38,7 +39,7 @@ class BusinessDB(SQLModel, table=True):
         nullable=False,
         sa_column_kwargs={"onupdate": func.now()},
     )
-    departments: list[DepartmentDB] = Relationship(back_populates="business")
+    departments: list["DepartmentDB"] = Relationship(back_populates="business")
 
 
 class ProviderDepartmentLinkDB(SQLModel, table=True):
@@ -61,8 +62,8 @@ class DepartmentDB(SQLModel, table=True):
         nullable=False,
         sa_column_kwargs={"onupdate": func.now()},
     )
-    business: BusinessDB = Relationship(back_populates="departments")
-    providers: list[ProviderDB] = Relationship(
+    business: "BusinessDB" = Relationship(back_populates="departments")
+    providers: list["ProviderDB"] = Relationship(
         back_populates="departments", link_model=ProviderDepartmentLinkDB
     )
 
@@ -83,11 +84,11 @@ class ProviderDB(SQLModel, table=True):
         nullable=False,
         sa_column_kwargs={"onupdate": func.now()},
     )
-    departments: list[DepartmentDB] = Relationship(
+    departments: list["DepartmentDB"] = Relationship(
         back_populates="providers", link_model=ProviderDepartmentLinkDB
     )
-    slots: list[SlotDB] = Relationship(back_populates="provider")
-    appointments: list[AppointmentDB] = Relationship(back_populates="provider")
+    slots: list["SlotDB"] = Relationship(back_populates="provider")
+    appointments: list["AppointmentDB"] = Relationship(back_populates="provider")
 
 
 class CustomerDB(SQLModel, table=True):
@@ -108,7 +109,7 @@ class CustomerDB(SQLModel, table=True):
         nullable=False,
         sa_column_kwargs={"onupdate": func.now()},
     )
-    appointments: list[AppointmentDB] = Relationship(back_populates="customer")
+    appointments: list["AppointmentDB"] = Relationship(back_populates="customer")
 
 
 class SlotDB(SQLModel, table=True):
@@ -128,8 +129,8 @@ class SlotDB(SQLModel, table=True):
         nullable=False,
         sa_column_kwargs={"onupdate": func.now()},
     )
-    provider: ProviderDB = Relationship(back_populates="slots")
-    appointment: Optional[AppointmentDB] = Relationship(back_populates="slot")
+    provider: "ProviderDB" = Relationship(back_populates="slots")
+    appointment: Optional["AppointmentDB"] = Relationship(back_populates="slot")
 
 
 class AppointmentDB(SQLModel, table=True):
@@ -148,10 +149,10 @@ class AppointmentDB(SQLModel, table=True):
         nullable=False,
         sa_column_kwargs={"onupdate": func.now()},
     )
-    slot: SlotDB = Relationship(back_populates="appointment")
-    provider: ProviderDB = Relationship(back_populates="appointments")
-    customer: CustomerDB = Relationship(back_populates="appointments")
-    history_logs: list[HistoryLogDB] = Relationship(back_populates="appointment")
+    slot: "SlotDB" = Relationship(back_populates="appointment")
+    provider: "ProviderDB" = Relationship(back_populates="appointments")
+    customer: "CustomerDB" = Relationship(back_populates="appointments")
+    history_logs: list["HistoryLogDB"] = Relationship(back_populates="appointment")
 
 
 class AvailabilityConfigDB(SQLModel, table=True):
@@ -159,8 +160,10 @@ class AvailabilityConfigDB(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     provider_id: uuid.UUID = Field(foreign_key="providers.id", index=True)
     month: str = Field(index=True)
-    weekly_template: WeeklyTemplate | None = Field(default=None, sa_column=Column(JSON))
-    exceptions: Exceptions | None = Field(default=None, sa_column=Column(JSON))
+    weekly_template: Optional[WeeklyTemplate] = Field(
+        default=None, sa_column=Column(JSON)
+    )
+    exceptions: Optional[Exceptions] = Field(default=None, sa_column=Column(JSON))
     created_at: datetime.datetime = Field(
         default_factory=datetime.datetime.utcnow, nullable=False
     )
@@ -185,4 +188,4 @@ class HistoryLogDB(SQLModel, table=True):
     old_status: Optional[str] = Field(default=None)
     new_status: Optional[str] = Field(default=None)
     details: Optional[str] = Field(default=None)
-    appointment: AppointmentDB = Relationship(back_populates="history_logs")
+    appointment: "AppointmentDB" = Relationship(back_populates="history_logs")

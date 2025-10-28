@@ -12,7 +12,9 @@ from app.pages import (
     business_settings,
     reports,
     archived_providers,
+    customer_profile,
 )
+from app.db import create_db_and_tables, seed_database
 
 
 def page_layout(page_content: rx.Component) -> rx.Component:
@@ -85,4 +87,9 @@ app.add_page(
     lambda: page_layout(archived_providers.archived_providers_page()),
     route="/providers/archived",
     title="Archived Providers | Appointment Manager",
+)
+app.add_page(
+    lambda: page_layout(customer_profile.customer_profile_page()),
+    route="/customers/[customer_id]",
+    title="Customer Profile | Appointment Manager",
 )

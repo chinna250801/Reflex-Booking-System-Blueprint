@@ -3,11 +3,11 @@ import uuid
 from datetime import datetime
 from typing import Optional
 from app.states.data_state import DataState
-from app.models import Department, Provider
+from app.models import Department, Provider, Customer
 
 
 class ManagementState(DataState):
-    """State for managing departments and providers."""
+    """State for managing departments, providers, customers and business settings."""
 
     show_department_modal: bool = False
     department_form_id: str = ""
@@ -27,6 +27,15 @@ class ManagementState(DataState):
     item_to_delete_id: str = ""
     delete_item_type: str = ""
     delete_warning_message: str = ""
+    customer_search_term: str = ""
+    business_display_name: str = ""
+    business_legal_name: str = ""
+    business_registration_number: str = ""
+    business_gstn: str = ""
+    business_address: str = ""
+    business_contact_mobile: str = ""
+    business_contact_email: str = ""
+    business_logo_url: str = ""
 
     @rx.var
     def department_form_is_edit(self) -> bool:
@@ -39,6 +48,10 @@ class ManagementState(DataState):
     @rx.var
     def active_providers(self) -> list[Provider]:
         return [p for p in self.providers if p["status"] != "Archived"]
+
+    @rx.var
+    def archived_providers(self) -> list[Provider]:
+        return [p for p in self.providers if p["status"] == "Archived"]
 
     def _get_department_names_for_provider(self, dept_ids: list[str]) -> str:
         """A helper method to get a comma-separated string of department names for a provider."""
@@ -70,6 +83,28 @@ class ManagementState(DataState):
         self.provider_department_ids = []
         self.provider_status = "Active"
         self.provider_error = ""
+
+    def _load_business_data(self):
+        if not self.businesses:
+            return
+        business = self.businesses[0]
+        self.business_display_name = business.get("display_name", "")
+        self.business_legal_name = business.get("legal_name", "")
+        self.business_registration_number = business.get("registration_number", "")
+        self.business_gstn = business.get("gstn", "")
+        self.business_address = business.get("address", "")
+        self.business_contact_mobile = business.get("contact_mobile", "")
+        self.business_contact_email = business.get("contact_email", "")
+        self.business_logo_url = business.get("logo_url", "/placeholder.svg")
+
+    @rx.event
+    def on_management_load(self):
+        """Load all necessary data for management pages."""
+        self._load_business_data()
+
+    @rx.event
+    def on_business_settings_load(self):
+        return ManagementState.on_management_load
 
     @rx.event
     def open_department_modal(self, department: Optional[Department] = None):
@@ -247,9 +282,61 @@ class ManagementState(DataState):
             yield rx.toast(f"Provider status changed to {new_status}")
 
     @rx.event
+    def restore_provider(self, provider_id: str):
+        """Restores an archived provider back to Inactive status."""
+        provider = self._get_provider_by_id(provider_id)
+        if provider and provider["status"] == "Archived":
+            provider["status"] = "Inactive"
+            provider["updated_at"] = datetime.now()
+            yield rx.toast(f"{provider['name']} has been restored.")
+
+    @rx.event
     def toggle_provider_department(self, department_id: str, checked: bool):
         if checked:
             if department_id not in self.provider_department_ids:
                 self.provider_department_ids.append(department_id)
         elif department_id in self.provider_department_ids:
             self.provider_department_ids.remove(department_id)
+
+    @rx.var
+    def filtered_customers(self) -> list[Customer]:
+        """Returns customers filtered by the search term."""
+        if not self.customer_search_term.strip():
+            return self.customers
+        term = self.customer_search_term.lower()
+        return [
+            c
+            for c in self.customers
+            if term in c["full_name"].lower() or term in c["mobile"]
+        ]
+
+    @rx.event
+    def save_business_settings(self, form_data: dict):
+        business = self.businesses[0]
+        business["display_name"] = form_data.get("display_name", "").strip()
+        business["legal_name"] = form_data.get("legal_name", "").strip()
+        business["registration_number"] = form_data.get(
+            "registration_number", ""
+        ).strip()
+        business["gstn"] = form_data.get("gstn", "").strip()
+        business["address"] = form_data.get("address", "").strip()
+        business["contact_mobile"] = form_data.get("contact_mobile", "").strip()
+        business["contact_email"] = form_data.get("contact_email", "").strip()
+        business["updated_at"] = datetime.now()
+        self._load_business_data()
+        yield rx.toast("Business settings saved successfully!")
+
+    @rx.event
+    async def handle_logo_upload(self, files: list[rx.UploadFile]):
+        if not files:
+            return
+        file = files[0]
+        upload_data = await file.read()
+        upload_dir = rx.get_upload_dir()
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        file_path = upload_dir / file.name
+        with file_path.open("wb") as f:
+            f.write(upload_data)
+        self.businesses[0]["logo_url"] = file.name
+        self.business_logo_url = file.name
+        yield rx.toast("Logo uploaded successfully!")
