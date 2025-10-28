@@ -43,15 +43,15 @@ def provider_form_modal() -> rx.Component:
                                     rx.el.input(
                                         type="checkbox",
                                         checked=ManagementState.provider_department_ids.contains(
-                                            dept.id
+                                            dept["id"]
                                         ),
                                         on_change=lambda checked: ManagementState.toggle_provider_department(
-                                            dept.id, checked
+                                            dept["id"], checked
                                         ),
                                         class_name="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500",
                                     ),
                                     rx.el.label(
-                                        dept.name,
+                                        dept["name"],
                                         class_name="ml-2 text-sm text-gray-700",
                                     ),
                                     class_name="flex items-center",
@@ -201,24 +201,30 @@ def provider_card(provider: Provider) -> rx.Component:
     """A card displaying a single provider's information."""
     return rx.el.div(
         rx.el.div(
-            rx.el.h3(provider.name, class_name="text-lg font-semibold text-gray-800"),
-            status_badge(provider.status),
+            rx.el.h3(
+                provider["name"], class_name="text-lg font-semibold text-gray-800"
+            ),
+            status_badge(provider["status"]),
             class_name="flex justify-between items-center",
         ),
         rx.el.p(
-            ManagementState.provider_department_names[provider.id],
+            ManagementState.provider_department_names[provider["id"]],
             class_name="text-sm font-medium text-emerald-700 mt-1",
         ),
-        rx.el.p(provider.bio, class_name="text-sm text-gray-600 mt-2 truncate"),
+        rx.el.p(provider["bio"], class_name="text-sm text-gray-600 mt-2 truncate"),
         rx.el.div(
             rx.el.div(
                 rx.icon("phone", class_name="h-4 w-4 text-gray-500"),
-                rx.el.span(provider.contact_mobile, class_name="text-sm text-gray-600"),
+                rx.el.span(
+                    provider["contact_mobile"], class_name="text-sm text-gray-600"
+                ),
                 class_name="flex items-center gap-2",
             ),
             rx.el.div(
                 rx.icon("mail", class_name="h-4 w-4 text-gray-500"),
-                rx.el.span(provider.contact_email, class_name="text-sm text-gray-600"),
+                rx.el.span(
+                    provider["contact_email"], class_name="text-sm text-gray-600"
+                ),
                 class_name="flex items-center gap-2",
             ),
             class_name="flex flex-col gap-1 mt-3",
@@ -233,15 +239,17 @@ def provider_card(provider: Provider) -> rx.Component:
                 rx.el.option("Change Status", value="", disabled=True),
                 rx.el.option("Active", value="Active"),
                 rx.el.option("Inactive", value="Inactive"),
-                value=provider.status,
+                value=provider["status"],
                 on_change=lambda new_status: ManagementState.change_provider_status(
-                    provider.id, new_status
+                    provider["id"], new_status
                 ),
                 class_name="text-sm px-3 py-1.5 border rounded-md hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-500",
             ),
             rx.el.button(
                 "Archive",
-                on_click=lambda: ManagementState.confirm_archive_provider(provider.id),
+                on_click=lambda: ManagementState.confirm_archive_provider(
+                    provider["id"]
+                ),
                 class_name="text-sm px-3 py-1.5 border rounded-md text-red-600 hover:bg-red-50",
             ),
             class_name="flex items-center gap-2 mt-4",

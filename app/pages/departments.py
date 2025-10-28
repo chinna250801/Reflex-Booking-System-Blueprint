@@ -118,7 +118,9 @@ def department_card(department: Department) -> rx.Component:
     """A card displaying a single department's information."""
     return rx.el.div(
         rx.el.div(
-            rx.el.h3(department.name, class_name="text-lg font-semibold text-gray-800"),
+            rx.el.h3(
+                department["name"], class_name="text-lg font-semibold text-gray-800"
+            ),
             rx.el.div(
                 rx.el.button(
                     rx.icon("pencil", class_name="h-4 w-4"),
@@ -128,7 +130,7 @@ def department_card(department: Department) -> rx.Component:
                 rx.el.button(
                     rx.icon("trash-2", class_name="h-4 w-4"),
                     on_click=lambda: ManagementState.confirm_delete_department(
-                        department.id
+                        department["id"]
                     ),
                     class_name="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md",
                 ),
@@ -136,7 +138,7 @@ def department_card(department: Department) -> rx.Component:
             ),
             class_name="flex justify-between items-center",
         ),
-        rx.el.p(department.description, class_name="text-sm text-gray-600 mt-2"),
+        rx.el.p(department["description"], class_name="text-sm text-gray-600 mt-2"),
         class_name="p-4 bg-white rounded-xl border border-gray-200 shadow-sm",
     )
 

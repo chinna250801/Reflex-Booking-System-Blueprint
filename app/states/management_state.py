@@ -1,5 +1,6 @@
 import reflex as rx
 import uuid
+from datetime import datetime
 from typing import Optional
 from app.states.data_state import DataState
 from app.models import Department, Provider
@@ -37,11 +38,11 @@ class ManagementState(DataState):
 
     @rx.var
     def active_providers(self) -> list[Provider]:
-        return [p for p in self.providers if p.status != "Archived"]
+        return [p for p in self.providers if p["status"] != "Archived"]
 
     def _get_department_names_for_provider(self, dept_ids: list[str]) -> str:
         """A helper method to get a comma-separated string of department names for a provider."""
-        names = [d.name for d in self.departments if d.id in dept_ids]
+        names = [d["name"] for d in self.departments if d["id"] in dept_ids]
         return ", ".join(names)
 
     @rx.var
@@ -49,15 +50,10 @@ class ManagementState(DataState):
         """A computed var mapping provider IDs to their department names string."""
         provider_dept_names = {}
         for p in self.providers:
-            provider_dept_names[p.id] = self._get_department_names_for_provider(
-                p.department_ids
+            provider_dept_names[p["id"]] = self._get_department_names_for_provider(
+                p["department_ids"]
             )
         return provider_dept_names
-
-    def _get_department_names_for_provider(self, dept_ids: list[str]) -> str:
-        """A helper method to get a comma-separated string of department names for a provider."""
-        names = [d.name for d in self.departments if d.id in dept_ids]
-        return ", ".join(names)
 
     def _clear_department_form(self):
         self.department_form_id = ""
@@ -79,9 +75,9 @@ class ManagementState(DataState):
     def open_department_modal(self, department: Optional[Department] = None):
         self._clear_department_form()
         if department:
-            self.department_form_id = department.id
-            self.department_name = department.name
-            self.department_description = department.description
+            self.department_form_id = department["id"]
+            self.department_name = department["name"]
+            self.department_description = department["description"]
         self.show_department_modal = True
 
     @rx.event
@@ -100,29 +96,32 @@ class ManagementState(DataState):
             self.department_error = "Department name is required."
             return
         if not self.department_form_is_edit:
-            if any((d.name.lower() == name.lower() for d in self.departments)):
+            if any((d["name"].lower() == name.lower() for d in self.departments)):
                 self.department_error = "A department with this name already exists."
                 return
             new_dept = Department(
                 id=str(uuid.uuid4()),
-                business_id=self.businesses[0].id,
+                business_id=self.businesses[0]["id"],
                 name=name.strip(),
                 description=description.strip(),
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
             )
             self.departments.append(new_dept)
             yield rx.toast("Department added successfully!")
         else:
             department = self._get_department_by_id(self.department_form_id)
             if department:
-                department.name = name
-                department.description = description
+                department["name"] = name
+                department["description"] = description
+                department["updated_at"] = datetime.now()
                 yield rx.toast("Department updated successfully!")
         yield ManagementState.close_department_modal()
 
     @rx.event
     def confirm_delete_department(self, department_id: str):
         providers_in_dept = [
-            p for p in self.providers if department_id in p.department_ids
+            p for p in self.providers if department_id in p["department_ids"]
         ]
         if providers_in_dept:
             self.delete_warning_message = f"Cannot delete department. It is assigned to {len(providers_in_dept)} provider(s). Reassign them first."
@@ -138,7 +137,7 @@ class ManagementState(DataState):
         if self.item_to_delete_id:
             if self.delete_item_type == "department":
                 self.departments = [
-                    d for d in self.departments if d.id != self.item_to_delete_id
+                    d for d in self.departments if d["id"] != self.item_to_delete_id
                 ]
                 yield rx.toast("Department deleted successfully!")
             elif self.delete_item_type == "provider":
@@ -158,13 +157,13 @@ class ManagementState(DataState):
     def open_provider_modal(self, provider: Optional[Provider] = None):
         self._clear_provider_form()
         if provider:
-            self.provider_form_id = provider.id
-            self.provider_name = provider.name
-            self.provider_bio = provider.bio
-            self.provider_contact_mobile = provider.contact_mobile
-            self.provider_contact_email = provider.contact_email
-            self.provider_department_ids = provider.department_ids
-            self.provider_status = provider.status
+            self.provider_form_id = provider["id"]
+            self.provider_name = provider["name"]
+            self.provider_bio = provider["bio"]
+            self.provider_contact_mobile = provider["contact_mobile"]
+            self.provider_contact_email = provider["contact_email"]
+            self.provider_department_ids = provider["department_ids"]
+            self.provider_status = provider["status"]
         self.show_provider_modal = True
 
     @rx.event
@@ -198,18 +197,21 @@ class ManagementState(DataState):
                 bio=bio,
                 contact_mobile=contact_mobile,
                 contact_email=contact_email,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
             )
             self.providers.append(new_provider)
             yield rx.toast("Provider added successfully!")
         else:
             provider = self._get_provider_by_id(self.provider_form_id)
             if provider:
-                provider.name = name
-                provider.department_ids = self.provider_department_ids
-                provider.status = self.provider_status
-                provider.bio = bio
-                provider.contact_mobile = contact_mobile
-                provider.contact_email = contact_email
+                provider["name"] = name
+                provider["department_ids"] = self.provider_department_ids
+                provider["status"] = self.provider_status
+                provider["bio"] = bio
+                provider["contact_mobile"] = contact_mobile
+                provider["contact_email"] = contact_email
+                provider["updated_at"] = datetime.now()
                 yield rx.toast("Provider updated successfully!")
         yield ManagementState.close_provider_modal()
 
@@ -220,7 +222,8 @@ class ManagementState(DataState):
             return
         has_active_appointments = any(
             (
-                a.provider_id == provider_id and a.status in ["Pending", "Confirmed"]
+                a["provider_id"] == provider_id
+                and a["status"] in ["Pending", "Confirmed"]
                 for a in self.appointments
             )
         )
@@ -239,7 +242,8 @@ class ManagementState(DataState):
     def change_provider_status(self, provider_id: str, new_status: str):
         provider = self._get_provider_by_id(provider_id)
         if provider:
-            provider.status = new_status
+            provider["status"] = new_status
+            provider["updated_at"] = datetime.now()
             yield rx.toast(f"Provider status changed to {new_status}")
 
     @rx.event

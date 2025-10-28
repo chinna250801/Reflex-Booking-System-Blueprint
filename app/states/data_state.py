@@ -13,6 +13,7 @@ from app.models import (
     AvailabilityConfig,
     HistoryLog,
 )
+from datetime import datetime, time, timedelta
 
 business_id = str(uuid.uuid4())
 dept_med_id = str(uuid.uuid4())
@@ -33,6 +34,8 @@ mock_business = Business(
     address="123 Health St, Med-City, 12345",
     contact_mobile="+1-202-555-0175",
     contact_email="contact@wellness.com",
+    created_at=datetime.now(),
+    updated_at=datetime.now(),
 )
 mock_departments = [
     Department(
@@ -40,12 +43,16 @@ mock_departments = [
         business_id=business_id,
         name="General Medicine",
         description="Consultations and general health check-ups.",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
     Department(
         id=dept_dental_id,
         business_id=business_id,
         name="Dental Care",
         description="Routine dental check-ups, cleaning, and treatments.",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
 ]
 mock_providers = [
@@ -57,6 +64,8 @@ mock_providers = [
         bio="15 years of experience in general medicine.",
         contact_mobile="555-0101",
         contact_email="alice.w@wellness.com",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
     Provider(
         id=provider2_id,
@@ -66,6 +75,8 @@ mock_providers = [
         bio="Specialist in cosmetic dentistry.",
         contact_mobile="555-0102",
         contact_email="bob.b@wellness.com",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
     Provider(
         id=provider3_id,
@@ -75,6 +86,8 @@ mock_providers = [
         bio="General practitioner, currently on leave.",
         contact_mobile="555-0103",
         contact_email="charlie.d@wellness.com",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
 ]
 mock_customers = [
@@ -86,17 +99,38 @@ mock_customers = [
         location="Downtown",
         age=34,
         gender="Male",
+        address="123 Main St",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
     Customer(
         id=cust2_id,
         full_name="Jane Doe",
         mobile="555-0112",
         email="jane.doe@example.com",
+        location="Uptown",
+        age=28,
+        gender="Female",
+        address="456 Oak Ave",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
-    Customer(id=cust3_id, full_name="Peter Jones", mobile="555-0113"),
+    Customer(
+        id=cust3_id,
+        full_name="Peter Jones",
+        mobile="555-0113",
+        email="peter.jones@example.com",
+        location="Midtown",
+        age=45,
+        gender="Male",
+        address="789 Pine Ln",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    ),
 ]
 mock_availability_configs = {
     provider1_id: AvailabilityConfig(
+        id=str(uuid.uuid4()),
         provider_id=provider1_id,
         month="2024-07",
         weekly_template={
@@ -106,8 +140,12 @@ mock_availability_configs = {
             4: [(time(9, 0), time(12, 0)), (time(13, 0), time(17, 0))],
             5: [(time(9, 0), time(13, 0))],
         },
+        exceptions={},
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
     provider2_id: AvailabilityConfig(
+        id=str(uuid.uuid4()),
         provider_id=provider2_id,
         month="2024-07",
         weekly_template={
@@ -116,6 +154,9 @@ mock_availability_configs = {
             3: [(time(10, 0), time(18, 0))],
             5: [(time(10, 0), time(14, 0))],
         },
+        exceptions={},
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     ),
 }
 
@@ -128,7 +169,7 @@ def generate_slots_for_provider(
     for day in range(num_days):
         current_date = start_date + timedelta(days=day)
         day_of_week = current_date.weekday()
-        time_ranges = config.weekly_template.get(day_of_week, [])
+        time_ranges = config["weekly_template"].get(day_of_week, [])
         for start_time, end_time in time_ranges:
             current_slot_time = datetime.combine(current_date, start_time)
             end_slot_time = datetime.combine(current_date, end_time)
@@ -142,6 +183,8 @@ def generate_slots_for_provider(
                         price_cents=5000 if provider_id == provider1_id else 7500,
                         is_booked=False,
                         calendar_month=current_date.strftime("%Y-%m"),
+                        created_at=datetime.now(),
+                        updated_at=datetime.now(),
                     )
                 )
                 current_slot_time += slot_duration
@@ -160,15 +203,15 @@ def create_appointment(slot: Slot, customer_id: str, status: str):
     appointment_id = str(uuid.uuid4())
     appointment = Appointment(
         id=appointment_id,
-        slot_id=slot.id,
-        provider_id=slot.provider_id,
+        slot_id=slot["id"],
+        provider_id=slot["provider_id"],
         customer_id=customer_id,
         status=status,
         created_at=datetime.now() - timedelta(days=5),
         updated_at=datetime.now() - timedelta(days=5),
         notes=f"This is a {status.lower()} appointment.",
     )
-    slot.is_booked = True
+    slot["is_booked"] = True
     mock_appointments.append(appointment)
     mock_history_logs.append(
         HistoryLog(
@@ -177,7 +220,7 @@ def create_appointment(slot: Slot, customer_id: str, status: str):
             action="create",
             performed_by="System",
             user_type="System",
-            timestamp=appointment.created_at,
+            timestamp=appointment["created_at"],
             new_status=status,
             details="Appointment created",
         )
@@ -187,16 +230,16 @@ def create_appointment(slot: Slot, customer_id: str, status: str):
 available_slots_p1 = [
     s
     for s in mock_slots
-    if s.provider_id == provider1_id
-    and (not s.is_booked)
-    and (s.start_datetime > today)
+    if s["provider_id"] == provider1_id
+    and (not s["is_booked"])
+    and (s["start_datetime"] > today)
 ]
 available_slots_p2 = [
     s
     for s in mock_slots
-    if s.provider_id == provider2_id
-    and (not s.is_booked)
-    and (s.start_datetime > today)
+    if s["provider_id"] == provider2_id
+    and (not s["is_booked"])
+    and (s["start_datetime"] > today)
 ]
 if len(available_slots_p1) > 2:
     create_appointment(available_slots_p1[0], cust1_id, "Pending")
@@ -225,16 +268,16 @@ class DataState(rx.State):
     status_filter: str = "all"
 
     def _get_department_by_id(self, department_id: str) -> Optional[Department]:
-        return next((d for d in self.departments if d.id == department_id), None)
+        return next((d for d in self.departments if d["id"] == department_id), None)
 
     def _get_provider_by_id(self, provider_id: str) -> Optional[Provider]:
-        return next((p for p in self.providers if p.id == provider_id), None)
+        return next((p for p in self.providers if p["id"] == provider_id), None)
 
     def _get_slot_by_id(self, slot_id: str) -> Optional[Slot]:
-        return next((s for s in self.slots if s.id == slot_id), None)
+        return next((s for s in self.slots if s["id"] == slot_id), None)
 
     def _get_appointment_by_id(self, appointment_id: str) -> Optional[Appointment]:
-        return next((a for a in self.appointments if a.id == appointment_id), None)
+        return next((a for a in self.appointments if a["id"] == appointment_id), None)
 
     def _log_history(
         self,
@@ -271,35 +314,35 @@ class DataState(rx.State):
         slot = self._get_slot_by_id(slot_id)
         if not slot:
             return "Error: Slot not found."
-        if slot.is_booked:
+        if slot["is_booked"]:
             return "Error: Slot is already booked."
-        provider = self._get_provider_by_id(slot.provider_id)
-        if not provider or provider.status != "Active":
+        provider = self._get_provider_by_id(slot["provider_id"])
+        if not provider or provider["status"] != "Active":
             return "Error: Provider is not active."
         customer_appointments = [
             a
             for a in self.appointments
-            if a.customer_id == customer_id
-            and a.provider_id == provider.id
-            and (a.status not in ["Cancelled", "Completed", "No-Show"])
+            if a["customer_id"] == customer_id
+            and a["provider_id"] == provider["id"]
+            and (a["status"] not in ["Cancelled", "Completed", "No-Show"])
         ]
         for appt in customer_appointments:
-            appt_slot = self._get_slot_by_id(appt.slot_id)
+            appt_slot = self._get_slot_by_id(appt["slot_id"])
             if appt_slot and (
                 not (
-                    slot.end_datetime <= appt_slot.start_datetime
-                    or slot.start_datetime >= appt_slot.end_datetime
+                    slot["end_datetime"] <= appt_slot["start_datetime"]
+                    or slot["start_datetime"] >= appt_slot["end_datetime"]
                 )
             ):
                 return (
                     "Error: Customer has an overlapping appointment with this provider."
                 )
-        slot.is_booked = True
+        slot["is_booked"] = True
         appointment_id = str(uuid.uuid4())
         new_appointment = Appointment(
             id=appointment_id,
             slot_id=slot_id,
-            provider_id=slot.provider_id,
+            provider_id=slot["provider_id"],
             customer_id=customer_id,
             status="Pending",
             created_at=datetime.now(),
@@ -324,7 +367,7 @@ class DataState(rx.State):
         appointment = self._get_appointment_by_id(appointment_id)
         if not appointment:
             return "Error: Appointment not found."
-        old_status = appointment.status
+        old_status = appointment["status"]
         valid_transitions = {
             "Pending": ["Confirmed", "Cancelled", "Completed", "No-Show"],
             "Confirmed": ["Cancelled", "Completed", "No-Show"],
@@ -336,14 +379,14 @@ class DataState(rx.State):
             )
         if new_status not in valid_transitions.get(old_status, []):
             return f"Error: Invalid status transition from '{old_status}' to '{new_status}'."
-        appointment.status = new_status
-        appointment.updated_at = datetime.now()
+        appointment["status"] = new_status
+        appointment["updated_at"] = datetime.now()
         if new_status == "Cancelled":
-            slot = self._get_slot_by_id(appointment.slot_id)
+            slot = self._get_slot_by_id(appointment["slot_id"])
             if slot:
-                slot.is_booked = False
+                slot["is_booked"] = False
         self._log_history(
-            appointment.id,
+            appointment["id"],
             "status_change",
             performed_by,
             user_type,
@@ -359,24 +402,24 @@ class DataState(rx.State):
         appointment = self._get_appointment_by_id(appointment_id)
         if not appointment:
             return "Error: Appointment not found."
-        if appointment.status in ["Cancelled", "Completed"]:
-            return f"Error: Cannot edit a '{appointment.status}' appointment."
+        if appointment["status"] in ["Cancelled", "Completed"]:
+            return f"Error: Cannot edit a '{appointment['status']}' appointment."
         new_slot = self._get_slot_by_id(new_slot_id)
         if not new_slot:
             return "Error: New slot not found."
-        if new_slot.is_booked:
+        if new_slot["is_booked"]:
             return "Error: New slot is already booked."
-        if new_slot.provider_id != appointment.provider_id:
+        if new_slot["provider_id"] != appointment["provider_id"]:
             return "Error: Cannot change provider when editing time."
-        old_slot = self._get_slot_by_id(appointment.slot_id)
+        old_slot = self._get_slot_by_id(appointment["slot_id"])
         if old_slot:
-            old_slot.is_booked = False
-        new_slot.is_booked = True
-        appointment.slot_id = new_slot_id
-        appointment.updated_at = datetime.now()
-        details = f"Time changed from {(old_slot.start_datetime if old_slot else 'N/A')} to {new_slot.start_datetime}"
+            old_slot["is_booked"] = False
+        new_slot["is_booked"] = True
+        appointment["slot_id"] = new_slot_id
+        appointment["updated_at"] = datetime.now()
+        details = f"Time changed from {(old_slot['start_datetime'] if old_slot else 'N/A')} to {new_slot['start_datetime']}"
         self._log_history(
-            appointment.id, "update", performed_by, user_type, details=details
+            appointment["id"], "update", performed_by, user_type, details=details
         )
         return None
 
@@ -387,7 +430,8 @@ class DataState(rx.State):
             return "Error: Provider not found."
         has_active_appointments = any(
             (
-                a.provider_id == provider_id and a.status in ["Pending", "Confirmed"]
+                a["provider_id"] == provider_id
+                and a["status"] in ["Pending", "Confirmed"]
                 for a in self.appointments
             )
         )
@@ -395,5 +439,6 @@ class DataState(rx.State):
             return (
                 "Error: Cannot archive provider with pending or confirmed appointments."
             )
-        provider.status = "Archived"
+        provider["status"] = "Archived"
+        provider["updated_at"] = datetime.now()
         return None
