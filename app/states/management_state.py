@@ -59,16 +59,6 @@ class ManagementState(DataState):
         names = [d.name for d in self.departments if d.id in dept_ids]
         return ", ".join(names)
 
-    @rx.var
-    def provider_department_names(self) -> dict[str, str]:
-        """A computed var mapping provider IDs to their department names string."""
-        provider_dept_names = {}
-        for p in self.providers:
-            provider_dept_names[p.id] = self._get_department_names_for_provider(
-                p.department_ids
-            )
-        return provider_dept_names
-
     def _clear_department_form(self):
         self.department_form_id = ""
         self.department_name = ""
@@ -254,9 +244,8 @@ class ManagementState(DataState):
 
     @rx.event
     def toggle_provider_department(self, department_id: str, checked: bool):
-        department_id_str = str(department_id)
         if checked:
-            if department_id_str not in self.provider_department_ids:
-                self.provider_department_ids.append(department_id_str)
-        elif department_id_str in self.provider_department_ids:
-            self.provider_department_ids.remove(department_id_str)
+            if department_id not in self.provider_department_ids:
+                self.provider_department_ids.append(department_id)
+        elif department_id in self.provider_department_ids:
+            self.provider_department_ids.remove(department_id)
